@@ -17,7 +17,7 @@ from pandas.core.datetools import (
     get_standard_freq)
 
 from pandas.tseries.frequencies import _offset_map
-from pandas.tseries.index import _to_m8
+from pandas.tseries.index import _to_m8, DatetimeIndex, _daterange_cache
 from pandas.tseries.tools import parse_time_string
 import pandas.tseries.offsets as offsets
 
@@ -1797,6 +1797,19 @@ class TestCaching(unittest.TestCase):
         
     def test_should_cache_bmonth_end(self):
         self.assertTrue(BusinessMonthEnd()._should_cache())
+        
+    def test_month_end_index_creation(self):
+        range1 = DatetimeIndex(start=datetime(2013,1,31), end=datetime(2013,3,31), freq=MonthEnd(), normalize=True)
+#         range2 = DatetimeIndex(start=datetime(2013,1,31), end=datetime(2013,3,31), freq=MonthEnd(), normalize=True)
+#         self.assertIs(range1, range2)
+        self.assertTrue(MonthEnd() in _daterange_cache)
+        
+    def test_bmonth_end_index_creation(self):
+        range1 = DatetimeIndex(start=datetime(2013,1,31), end=datetime(2013,3,29), freq=BusinessMonthEnd(), normalize=True)
+#         range2 = DatetimeIndex(start=datetime(2013,1,31), end=datetime(2013,3,29), freq=BusinessMonthEnd(), normalize=True)
+        self.assertTrue(BusinessMonthEnd() in _daterange_cache)
+#         self.assertIs(range1, range2)
+        
          
 if __name__ == '__main__':
     import nose
