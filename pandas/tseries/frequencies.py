@@ -92,6 +92,8 @@ def get_freq_code(freqstr):
                 code = _period_str_to_code(freqstr[0])
                 stride = freqstr[1]
             except:
+                if com.is_integer(freqstr[1]):
+                    raise
                 code = _period_str_to_code(freqstr[1])
                 stride = freqstr[0]
             return code, stride
@@ -367,9 +369,27 @@ _rule_aliases = {
 
 for _i, _weekday in enumerate(['MON', 'TUE', 'WED', 'THU', 'FRI']):
     for _iweek in range(4):
+        offset = offsets.WeekOfMonth(week=_iweek, weekday=_i)
+        #TODO: Read the _name from offset.rule_code
         _name = 'WOM-%d%s' % (_iweek + 1, _weekday)
-        _offset_map[_name] = offsets.WeekOfMonth(week=_iweek, weekday=_i)
+        _offset_map[_name] = offset
         _rule_aliases[_name.replace('-', '@')] = _name
+        
+def add_offset_to_map(offset):
+    _name = offset.rule_code
+    _offset_map[_name] = offset
+                    
+for _weekday in range(7):
+    for _imonth in range(1,12+1):
+        
+        for cls in [offsets.FY5253LastOfMonth, offsets.FY5253NearestEndMonth]:
+            offset = cls(startingMonth=_imonth, weekday=_weekday)
+            add_offset_to_map(offset)
+            
+        for qtr_with_extra_week in range(1,4+1):
+            for cls in [offsets.FY5253LastOfMonthQuarter, offsets.FY5253NearestEndMonthQuarter]:
+                offset = cls(startingMonth=_imonth, weekday=_weekday, qtr_with_extra_week=qtr_with_extra_week)
+                add_offset_to_map(offset)
 
 # Note that _rule_aliases is not 1:1 (d[BA]==d[A@DEC]), and so traversal
 # order matters when constructing an inverse. we pick one. #2331
@@ -541,9 +561,6 @@ def get_legacy_offset_name(offset):
     """
     name = _offset_names.get(offset)
     return _legacy_reverse_map.get(name, name)
-
-get_offset_name = get_offset_name
-
 
 def get_standard_freq(freq):
     """
@@ -744,7 +761,7 @@ def _period_str_to_code(freqstr):
     try:
         freqstr = freqstr.upper()
         return _period_code_map[freqstr]
-    except:
+    except KeyError:
         alias = _period_alias_dict[freqstr]
         return _period_code_map[alias]
 
