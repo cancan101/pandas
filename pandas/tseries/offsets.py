@@ -1251,7 +1251,7 @@ def _delta_to_nanoseconds(delta):
             + delta.microseconds) * 1000
 
 
-class Day(Tick, CacheableOffset):
+class Day(CacheableOffset, Tick):
     _inc = timedelta(1)
     _rule_base = 'D'
 
