@@ -8,7 +8,8 @@ import numpy as np
 from pandas import Series, TimeSeries, DataFrame, Panel, isnull, notnull, Timestamp
 
 from pandas.tseries.index import date_range
-from pandas.tseries.offsets import Minute, BDay
+from pandas.tseries.offsets import Minute, BDay, FY5253LastOfMonthQuarter,\
+    FY5253LastOfMonth, Week
 from pandas.tseries.period import period_range, PeriodIndex, Period
 from pandas.tseries.resample import DatetimeIndex, TimeGrouper
 import pandas.tseries.offsets as offsets
@@ -1129,6 +1130,18 @@ class TestTimeGrouper(unittest.TestCase):
         result = bingrouped.agg(f)
         tm.assert_panel_equal(result, binagg)
 
+    def test_5253fy_q_ds(self):
+        rng = date_range('1/1/2012', periods=4, freq=FY5253LastOfMonthQuarter(startingMonth=12, weekday=offsets.WeekDay.SAT, qtr_with_extra_week=4))
+        print rng
+        s = Series(np.random.randn(4), index=rng)
+        print s.to_period()
+
+        print s
+#         print s.resample(rule=FY5253LastOfMonth(startingMonth=12, weekday=offsets.WeekDay.SAT))
+        print s.resample(rule=Week(weekday=offsets.WeekDay.SAT), fill_method="pad", closed="left")
+#         print s.resample(rule="D", fill_method="pad")
+
+        
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
