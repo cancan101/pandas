@@ -14,6 +14,7 @@ from pandas.tseries.period import period_range, PeriodIndex, Period
 from pandas.tseries.resample import DatetimeIndex, TimeGrouper
 import pandas.tseries.offsets as offsets
 import pandas as pd
+import pandas.tseries.frequencies
 
 import unittest
 import nose
@@ -1133,6 +1134,9 @@ class TestTimeGrouper(unittest.TestCase):
     def test_5253fy_q_ds(self):
         rng = date_range('1/1/2012', periods=4, freq=FY5253LastOfMonthQuarter(startingMonth=12, weekday=offsets.WeekDay.SAT, qtr_with_extra_week=4))
         print rng
+        print rng.offset
+        print rng.freq
+        print rng.freqstr
         s = Series(np.random.randn(4), index=rng)
         print s.to_period()
 
@@ -1140,6 +1144,13 @@ class TestTimeGrouper(unittest.TestCase):
 #         print s.resample(rule=FY5253LastOfMonth(startingMonth=12, weekday=offsets.WeekDay.SAT))
         print s.resample(rule=Week(weekday=offsets.WeekDay.SAT), fill_method="pad", closed="left")
 #         print s.resample(rule="D", fill_method="pad")
+
+    def test_offset_map(self):
+        for name,offset in pandas.tseries.frequencies._offset_map.iteritems():
+            if name in ['QS', 'BQS', 'BQ']:
+                continue
+            print name, (None if offset is None else offset.rule_code)
+            assert name == (None if offset is None else offset.rule_code)
 
         
 

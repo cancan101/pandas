@@ -78,7 +78,9 @@ def get_freq_code(freqstr):
     Returns
     -------
     """
+    print freqstr, type(freqstr)
     if isinstance(freqstr, DateOffset):
+        code = hash(freqstr.__class__)
         freqstr = (get_offset_name(freqstr), freqstr.n)
 
     if isinstance(freqstr, tuple):
@@ -89,7 +91,10 @@ def get_freq_code(freqstr):
         else:
             # e.g., freqstr = ('T', 5)
             try:
-                code = _period_str_to_code(freqstr[0])
+                try:
+                    code = _period_str_to_code(freqstr[0])
+                except:
+                    pass    
                 stride = freqstr[1]
             except:
                 if com.is_integer(freqstr[1]):
@@ -102,8 +107,10 @@ def get_freq_code(freqstr):
         return (freqstr, 1)
 
     base, stride = _base_and_stride(freqstr)
-    code = _period_str_to_code(base)
-
+    try:
+        code = _period_str_to_code(base)
+    except:
+        return code, stride
     return code, stride
 
 
@@ -570,7 +577,7 @@ def get_standard_freq(freq):
         return None
 
     if isinstance(freq, DateOffset):
-        return get_offset_name(freq)
+        return freq#get_offset_name(freq)
 
     code, stride = get_freq_code(freq)
     return _get_freq_str(code, stride)
