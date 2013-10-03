@@ -728,7 +728,8 @@ def _period_alias_dictionary():
                 d1, d2 = d_tup
                 alias_dict[k + sep + d1] = 'W-' + d1
                 alias_dict[k + sep + d2] = 'W-' + d1
-
+    
+    alias_dict['RLQ-4DECSAT'] = 'Q'
     return alias_dict
 
 _reso_period_map = {

@@ -1132,9 +1132,9 @@ class TestTimeGrouper(unittest.TestCase):
 
     def test_5253fy_q_ds(self):
         rng = date_range('1/1/2012', periods=4, freq=FY5253LastOfMonthQuarter(startingMonth=12, weekday=offsets.WeekDay.SAT, qtr_with_extra_week=4))
-        print rng
+#         print rng
         s = Series(np.random.randn(4), index=rng)
-        print s.to_period()
+        s = s.to_period()
 
         print s
 #         print s.resample(rule=FY5253LastOfMonth(startingMonth=12, weekday=offsets.WeekDay.SAT))
