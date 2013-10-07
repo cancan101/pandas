@@ -17,9 +17,10 @@ from pandas.core.datetools import (
     WeekOfMonth, format, ole2datetime, QuarterEnd, to_datetime, normalize_date,
     get_offset, get_offset_name, get_standard_freq)
 
-from pandas.tseries.frequencies import _offset_map
+
+from pandas.tseries.frequencies import _offset_map, cday
 from pandas.tseries.index import _to_m8, DatetimeIndex, _daterange_cache, date_range
-from pandas.tseries.tools import parse_time_string, _maybe_get_tz
+from pandas.tseries.tools import parse_time_string, DateParseError, _maybe_get_tz
 import pandas.tseries.offsets as offsets
 
 from pandas.tslib import monthrange, OutOfBoundsDatetime, NaT
@@ -1857,6 +1858,7 @@ class TestFY5253NearestEndMonth(Base):
         offset_n = FY5253(weekday=WeekDay.TUE, startingMonth=12,
                       variation="nearest")
 
+
         tests = [
 #             From Wikipedia (see: http://en.wikipedia.org/wiki/4%E2%80%934%E2%80%935_calendar#Saturday_nearest_the_end_of_month)
 #             2006-09-02   2006 September 2
@@ -1907,6 +1909,7 @@ class TestFY5253NearestEndMonth(Base):
             (offset_n, datetime(2012, 12, 31), False),
             (offset_n, datetime(2013, 1, 1), True),
             (offset_n, datetime(2013, 1, 2), False),
+
         ]
 
         for offset, date, expected in tests:
@@ -1922,6 +1925,7 @@ class TestFY5253NearestEndMonth(Base):
                datetime(2008, 12, 28), datetime(2010, 1, 3),
                datetime(2011, 1, 2), datetime(2012, 1, 1),
                datetime(2012, 12, 30)]
+
 
         DEC_SAT = FY5253(n=-1, startingMonth=12, weekday=5, variation="nearest")
 
@@ -2139,6 +2143,7 @@ class TestFY5253NearestEndMonthQuarter(Base):
             (offset_n, datetime(2012, 12, 31), False),
             (offset_n, datetime(2013, 1, 1), True),
             (offset_n, datetime(2013, 1, 2), False)
+
         ]
 
         for offset, date, expected in tests:
@@ -2847,6 +2852,7 @@ class TestOffsetNames(tm.TestCase):
         self.assertEqual(get_offset_name(makeFY5253LastOfMonthQuarter(weekday=1, startingMonth=3, qtr_with_extra_week=4)),"REQ-L-MAR-TUE-4")
         self.assertEqual(get_offset_name(makeFY5253NearestEndMonthQuarter(weekday=1, startingMonth=3, qtr_with_extra_week=3)), "REQ-N-MAR-TUE-3")
 
+
 def test_get_offset():
     assertRaisesRegexp(ValueError, "rule.*GIBBERISH", get_offset, 'gibberish')
     assertRaisesRegexp(ValueError, "rule.*QS-JAN-B", get_offset, 'QS-JAN-B')
@@ -2869,12 +2875,18 @@ def test_get_offset():
                                     (name, expected, offset))
 
 
-def test_parse_time_string():
-    (date, parsed, reso) = parse_time_string('4Q1984')
-    (date_lower, parsed_lower, reso_lower) = parse_time_string('4q1984')
-    assert date == date_lower
-    assert parsed == parsed_lower
-    assert reso == reso_lower
+class TestParseTimeString(tm.TestCase):
+    def test_case_sensitivity(self):
+        (date, parsed, reso) = parse_time_string('4Q1984')
+        (date_lower, parsed_lower, reso_lower) = parse_time_string('4q1984')
+
+        self.assertEqual(date, date_lower)
+        self.assertEqual(parsed, parsed_lower)
+        self.assertEqual(reso, reso_lower)
+
+    def test_invalid_string(self):
+        self.assertRaises(DateParseError,
+                          parse_time_string, '2013Q1', freq="INVLD-L-DEC-SAT")
 
 
 def test_get_standard_freq():
@@ -2935,6 +2947,37 @@ class TestOffsetAliases(tm.TestCase):
                 self.assertEqual(alias, get_offset(alias).rule_code)
                 self.assertEqual(alias, (get_offset(alias) * 5).rule_code)
 
+    #GH5028
+    def test_offset_map(self):
+        for name, offset in compat.iteritems(_offset_map):
+            if name == 'C' and cday is None:
+                continue
+            self.assertEqual(name, None if offset is None else offset.rule_code)
+    
+    #GH5028
+    def test_many_to_one_mapping(self):
+        offsets =  [
+            QuarterBegin(startingMonth=1),
+            BQuarterBegin(startingMonth=1),
+            BQuarterEnd(startingMonth=12),
+                   ]
+         
+        for offset in offsets:
+            self.assertEqual(get_offset_name(offset), offset.rule_code)
+            
+    def test_aliased_offset_equality(self):
+        self.assertEqual(get_offset("Q"), get_offset("Q"))
+        self.assertEqual(get_offset("Q"), get_offset("Q-DEC"))
+        self.assertEqual(get_offset("QS"), get_offset("QS-JAN"))
+        self.assertEqual(get_offset("BQ"), get_offset("BQ-DEC"))
+        self.assertEqual(get_offset("BQS"), get_offset("BQS-JAN"))
+        
+    def test_aliased_offset_repr_equality(self):
+        self.assertEqual(repr(get_offset("Q")), repr(get_offset("Q")))
+        self.assertEqual(repr(get_offset("Q")), repr(get_offset("Q-DEC")))
+        self.assertEqual(repr(get_offset("QS")), repr(get_offset("QS-JAN")))
+        self.assertEqual(repr(get_offset("BQ")), repr(get_offset("BQ-DEC")))
+        self.assertEqual(repr(get_offset("BQS")), repr(get_offset("BQS-JAN")))
 
 def test_apply_ticks():
     result = offsets.Hour(3).apply(offsets.Hour(4))
@@ -3035,7 +3078,7 @@ class TestReprNames(tm.TestCase):
         names += ['WOM-' + week + day for week in ('1', '2', '3', '4')
                                        for day in days]
         #singletons
-        names += ['S', 'T', 'U', 'BM', 'BMS', 'BQ', 'QS'] # No 'Q'
+        names += ['S', 'T', 'U', 'BM', 'BMS', ] # No 'Q', 'BQ', 'QS', 'BQS',
         _offset_map.clear()
         for name in names:
             offset = get_offset(name)

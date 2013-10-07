@@ -811,6 +811,7 @@ Enhancements
                 columns=Grouper(freq='M', key='PayDay'),
                 values='Quantity', aggfunc=np.sum)
 
+<<<<<<< HEAD
 - Arrays of strings can be wrapped to a specified width (``str.wrap``) (:issue:`6999`)
 - Add :meth:`~Series.nsmallest` and :meth:`Series.nlargest` methods to Series, See :ref:`the docs <basics.nsorted>` (:issue:`3960`)
 
@@ -834,7 +835,9 @@ Enhancements
 - Refactor Block classes removing `Block.items` attributes to avoid duplication
   in item handling (:issue:`6745`, :issue:`6988`).
 - Testing statements updated to use specialized asserts (:issue:`6175`)
-
+- Constructor for ``Period`` now takes full set of possible ``Offset`` objects for ``freq``
+  parameter. (:issue:`4878`)
+- Extends the number of ``Period``s supported by allowing for Python defined ``Period``s (:issue:`5148`)
 
 
 .. _whatsnew_0140.performance:
