@@ -210,6 +210,11 @@ Improvements to existing features
   using ``DatetimeConverter`` (:issue:`6636`)
 - Performance improvement for  ``DataFrame.shift`` (:issue:`5609`)
 - Performance improvements in timedelta conversions for integer dtypes (:issue:`6754`)
+- Constructor for ``Period`` now takes full set of possible ``Offset`` objects for ``freq``
+  parameter. (:issue:`4878`)
+- Extends the number of ``Period``s supported by allowing for Python defined ``Period``s (:issue:`5148`)
+- Added ``inferred_freq_offset`` as property on ``DatetimeIndex`` to provide the actual 
+  Offset object rather than the string representation (:issue:`5082`).
 
 .. _release.bug_fixes-0.14.0:
 
@@ -302,6 +307,7 @@ Bug Fixes
 - Bug in ``obj.blocks`` on sparse containers dropping all but the last items of same for dtype (:issue:`6748`)
 - Bug in unpickling ``NaT (NaTType)`` (:issue:`4606`)
 - Bug in setting a tz-aware index directly via ``.index`` (:issue:`6785`)
+- Bug in not correctly treading 'QS', 'BQS', 'BQ' as frquency aliases (:issue:`5028`).
 
 pandas 0.13.1
 -------------

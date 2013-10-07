@@ -390,7 +390,10 @@ Enhancements
   and data_label which allow the time stamp and dataset label to be set when creating a
   file. (:issue:`6545`)
 - ``pandas.io.gbq`` now handles reading unicode strings properly. (:issue:`5940`)
-
+- Constructor for ``Period`` now takes full set of possible ``Offset`` objects for ``freq``
+  parameter. (:issue:`4878`)
+- Extends the number of ``Period``s supported by allowing for Python defined ``Period``s (:issue:`5148`)
+  
 Performance
 ~~~~~~~~~~~
 
