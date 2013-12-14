@@ -1737,27 +1737,22 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
 class IntArrayFormatter(GenericArrayFormatter):
 
-    def get_result(self):
-        if self.formatter:
-            formatter = self.formatter
-        else:
-            formatter = lambda x: '% d' % x
+    def _format_strings(self):
+        formatter = self.formatter or (lambda x: '% d' % x)
 
         fmt_values = [formatter(x) for x in self.values]
 
-        return _make_fixed_width(fmt_values, self.justify)
+        return fmt_values
 
 
 class Datetime64Formatter(GenericArrayFormatter):
 
-    def get_result(self):
-        if self.formatter:
-            formatter = self.formatter
-        else:
-            formatter = _format_datetime64
+    def _format_strings(self):
+        formatter = self.formatter or  _format_datetime64
 
         fmt_values = [formatter(x) for x in self.values]
-        return _make_fixed_width(fmt_values, self.justify)
+
+        return fmt_values
 
 
 def _format_datetime64(x, tz=None):
@@ -1768,17 +1763,14 @@ def _format_datetime64(x, tz=None):
     return stamp._repr_base
 
 
-class Timedelta64Formatter(Datetime64Formatter):
+class Timedelta64Formatter(GenericArrayFormatter):
 
-    def get_result(self):
-        if self.formatter:
-            formatter = self.formatter
-        else:
-
-            formatter = _format_timedelta64
+    def _format_strings(self):
+        formatter = self.formatter or _format_timedelta64
 
         fmt_values = [formatter(x) for x in self.values]
-        return _make_fixed_width(fmt_values, self.justify)
+
+        return fmt_values
 
 
 def _format_timedelta64(x):
