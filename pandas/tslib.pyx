@@ -203,13 +203,15 @@ class Timestamp(_Timestamp):
             pass
         zone = "'%s'" % zone if zone else 'None'
 
-        return "Timestamp('%s', tz=%s)" % (result,zone)
+        return "Timestamp('%s', tz=%s)" % (result, zone)
 
     @property
-    def _repr_base(self):
-        result = '%d-%.2d-%.2d %.2d:%.2d:%.2d' % (self.year, self.month,
-                                                  self.day, self.hour,
-                                                  self.minute, self.second)
+    def _date_repr(self):
+        return '%d-%.2d-%.2d' % (self.year, self.month, self.day)
+
+    @property
+    def _time_repr(self):
+        result = '%.2d:%.2d:%.2d' % (self.hour, self.minute, self.second)
 
         if self.nanosecond != 0:
             nanos = self.nanosecond + 1000 * self.microsecond
@@ -218,6 +220,10 @@ class Timestamp(_Timestamp):
             result += '.%.6d' % self.microsecond
 
         return result
+
+    @property
+    def _repr_base(self):
+        return '%s %s' % (self._date_repr, self._time_repr)
 
     @property
     def tz(self):

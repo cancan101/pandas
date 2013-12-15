@@ -23,6 +23,7 @@ import pandas.tslib as tslib
 import pandas as pd
 from pandas.core.config import (set_option, get_option,
                                 option_context, reset_option)
+from datetime import datetime
 
 _frame = DataFrame(tm.getSeriesData())
 
@@ -2159,6 +2160,20 @@ class TestTimedelta64Formatter(unittest.TestCase):
         x = pd.to_timedelta(list(range(1)), unit='D')
         result = fmt.Timedelta64Formatter(x).get_result()
         self.assertEqual(result[0].strip(), "0 days")
+
+
+class TestDatetime64Formatter(unittest.TestCase):
+    def test_mixed(self):
+        x = pd.Series([datetime(2013, 1, 1), datetime(2013, 1, 1, 12), pd.NaT])
+        result = fmt.Datetime64Formatter(x).get_result()
+        self.assertEqual(result[0].strip(), "2013-01-01 00:00:00")
+        self.assertEqual(result[1].strip(), "2013-01-01 12:00:00")
+
+    def test_dates(self):
+        x = pd.Series([datetime(2013, 1, 1), datetime(2013, 1, 2), pd.NaT])
+        result = fmt.Datetime64Formatter(x).get_result()
+        self.assertEqual(result[0].strip(), "2013-01-01")
+        self.assertEqual(result[1].strip(), "2013-01-02")
 
 if __name__ == '__main__':
     import nose

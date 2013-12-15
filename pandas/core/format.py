@@ -20,6 +20,7 @@ import numpy as np
 
 import itertools
 import csv
+from datetime import time
 
 from pandas.tseries.period import PeriodIndex, DatetimeIndex
 
@@ -1749,7 +1750,7 @@ class IntArrayFormatter(GenericArrayFormatter):
 class Datetime64Formatter(GenericArrayFormatter):
 
     def _format_strings(self):
-        formatter = self.formatter or  _format_datetime64
+        formatter = self.formatter or get_format_datetime64(self.values)
 
         fmt_values = [formatter(x) for x in self.values]
 
@@ -1762,6 +1763,32 @@ def _format_datetime64(x, tz=None):
 
     stamp = lib.Timestamp(x, tz=tz)
     return stamp._repr_base
+
+
+def _format_datetime64_dateonly(x, tz=None):
+    if isnull(x):
+        return 'NaT'
+
+    stamp = lib.Timestamp(x, tz=tz)
+    return stamp._date_repr
+
+
+def _is_dates_only(values):
+    zero_time = time(0, 0)
+    for d in values:
+        if isinstance(d, np.datetime64):
+            d = lib.Timestamp(d)
+
+        if not isnull(d) and (d.time() != zero_time or d.tzinfo is not None):
+            return False
+    return True
+
+
+def get_format_datetime64(values):
+    if _is_dates_only(values):
+        return _format_datetime64_dateonly
+    else:
+        return _format_datetime64
 
 
 class Timedelta64Formatter(GenericArrayFormatter):
