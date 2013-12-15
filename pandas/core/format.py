@@ -14,6 +14,7 @@ from pandas.util.terminal import get_terminal_size
 from pandas.core.config import get_option, set_option, reset_option
 import pandas.core.common as com
 import pandas.lib as lib
+from pandas.tslib import iNaT
 
 import numpy as np
 
@@ -1704,7 +1705,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
         fmt_values = [_val(x, threshold) for x in self.values]
         return _trim_zeros(fmt_values, self.na_rep)
 
-    def get_result(self):
+    def _format_strings(self):
         if self.formatter is not None:
             fmt_values = [self.formatter(x) for x in self.values]
         else:
@@ -1732,7 +1733,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
                 fmt_str = '%% .%de' % (self.digits - 1)
                 fmt_values = self._format_with(fmt_str)
 
-        return _make_fixed_width(fmt_values, self.justify)
+        return fmt_values
 
 
 class IntArrayFormatter(GenericArrayFormatter):
@@ -1766,18 +1767,33 @@ def _format_datetime64(x, tz=None):
 class Timedelta64Formatter(GenericArrayFormatter):
 
     def _format_strings(self):
-        formatter = self.formatter or _format_timedelta64
+        formatter = self.formatter or _get_format_timedelta64(self.values)
 
         fmt_values = [formatter(x) for x in self.values]
 
         return fmt_values
 
 
-def _format_timedelta64(x):
-    if isnull(x):
-        return 'NaT'
+def _get_format_timedelta64(values):
+    values_int = values.astype(np.int64)
 
-    return lib.repr_timedelta64(x)
+    consider_values = values_int != iNaT
+
+    even_days = np.logical_and(consider_values, values_int % (86400 * 1e9) != 0).sum() == 0
+    all_sub_day = np.logical_and(consider_values, np.abs(values_int) >= (86400 * 1e9)).sum() == 0
+
+    format_short = even_days or all_sub_day
+    format = "short" if format_short else "long"
+
+    def impl(x):
+        if isnull(x):
+            return 'NaT'
+        elif format_short and x == 0:
+            return "0 days" if even_days else "00:00:00"
+        else:
+            return lib.repr_timedelta64(x, format=format)
+
+    return impl
 
 
 def _make_fixed_width(strings, justify='right', minimum=None, truncated=False):

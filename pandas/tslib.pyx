@@ -1140,8 +1140,21 @@ def array_to_timedelta64(ndarray[object] values, coerce=True):
 
     return result
 
-def repr_timedelta64(object value):
-   """ provide repr for timedelta64 """
+
+def repr_timedelta64(object value, format=None):
+   """
+    provide repr for timedelta64
+
+    Parameters
+    ----------
+    value : timedelta64
+    format : None|"short"|"long"
+
+    Returns
+    -------
+    converted : Timestamp
+
+   """
 
    ivalue = value.view('i8')
 
@@ -1178,18 +1191,23 @@ def repr_timedelta64(object value):
       seconds_pretty = "%02d" % seconds
    else:
       sp = abs(round(1e6*frac))
-      seconds_pretty = "%02d.%06d" % (seconds,sp)
+      seconds_pretty = "%02d.%06d" % (seconds, sp)
 
    if sign < 0:
        sign_pretty = "-"
    else:
        sign_pretty = ""
 
-   if days:
-       return "%s%d days, %02d:%02d:%s" % (sign_pretty, days, hours, minutes,
+   if days or format == 'long':
+       if (hours or minutes or seconds or frac) or format != 'short':
+          return "%s%d days, %02d:%02d:%s" % (sign_pretty, days, hours, minutes,
                                            seconds_pretty)
+       else:
+          return "%s%d days" % (sign_pretty, days)
+
 
    return "%s%02d:%02d:%s" % (sign_pretty, hours, minutes, seconds_pretty)
+
 
 def array_strptime(ndarray[object] values, object fmt, coerce=False):
     cdef:

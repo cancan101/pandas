@@ -19,6 +19,7 @@ import pandas.core.format as fmt
 import pandas.util.testing as tm
 from pandas.util.terminal import get_terminal_size
 import pandas
+import pandas.tslib as tslib
 import pandas as pd
 from pandas.core.config import (set_option, get_option,
                                 option_context, reset_option)
@@ -1774,32 +1775,32 @@ class TestSeriesFormatting(tm.TestCase):
         # adding NaTs
         y = s-s.shift(1)
         result = y.to_string()
-        self.assertTrue('1 days, 00:00:00' in result)
+        self.assertTrue('1 days' in result)
         self.assertTrue('NaT' in result)
 
         # with frac seconds
         o = Series([datetime(2012,1,1,microsecond=150)]*3)
         y = s-o
         result = y.to_string()
-        self.assertTrue('-00:00:00.000150' in result)
+        self.assertTrue('-0 days, 00:00:00.000150' in result)
 
         # rounding?
         o = Series([datetime(2012,1,1,1)]*3)
         y = s-o
         result = y.to_string()
-        self.assertTrue('-01:00:00' in result)
+        self.assertTrue('-0 days, 01:00:00' in result)
         self.assertTrue('1 days, 23:00:00' in result)
 
         o = Series([datetime(2012,1,1,1,1)]*3)
         y = s-o
         result = y.to_string()
-        self.assertTrue('-01:01:00' in result)
+        self.assertTrue('-0 days, 01:01:00' in result)
         self.assertTrue('1 days, 22:59:00' in result)
 
         o = Series([datetime(2012,1,1,1,1,microsecond=150)]*3)
         y = s-o
         result = y.to_string()
-        self.assertTrue('-01:01:00.000150' in result)
+        self.assertTrue('-0 days, 01:01:00.000150' in result)
         self.assertTrue('1 days, 22:58:59.999850' in result)
 
         # neg time
@@ -1807,7 +1808,7 @@ class TestSeriesFormatting(tm.TestCase):
         s2 = Series(date_range('2012-1-1', periods=3, freq='D')) + td
         y = s - s2
         result = y.to_string()
-        self.assertTrue('-00:05:03' in result)
+        self.assertTrue('-00:05:03' in result, result)
 
         td = timedelta(microseconds=550)
         s2 = Series(date_range('2012-1-1', periods=3, freq='D')) + td
@@ -2034,6 +2035,109 @@ class TestFloatArrayFormatter(tm.TestCase):
     def test_misc(self):
         obj = fmt.FloatArrayFormatter(np.array([], dtype=np.float64))
         result = obj.get_result()
+        self.assertTrue(len(result) == 0)
+
+    def test_format(self):
+        obj = fmt.FloatArrayFormatter(np.array([12, 0], dtype=np.float64))
+        result = obj.get_result()
+        self.assertEqual(result[0], " 12")
+        self.assertEqual(result[1], "  0")
+
+
+class TestRepr_timedelta64(unittest.TestCase):
+    def test_legacy(self):
+        delta_1d = pd.to_timedelta(1, unit='D')
+        delta_0d = pd.to_timedelta(0, unit='D')
+        delta_1s = pd.to_timedelta(1, unit='s')
+        delta_500ms = pd.to_timedelta(500, unit='ms')
+
+        self.assertEqual(tslib.repr_timedelta64(delta_1d), "1 days, 00:00:00")
+        self.assertEqual(tslib.repr_timedelta64(-delta_1d), "-1 days, 00:00:00")
+        self.assertEqual(tslib.repr_timedelta64(delta_0d), "00:00:00")
+        self.assertEqual(tslib.repr_timedelta64(delta_1s), "00:00:01")
+        self.assertEqual(tslib.repr_timedelta64(delta_500ms), "00:00:00.500000")
+        self.assertEqual(tslib.repr_timedelta64(delta_1d + delta_1s), "1 days, 00:00:01")
+        self.assertEqual(tslib.repr_timedelta64(delta_1d + delta_500ms), "1 days, 00:00:00.500000")
+
+    def test_short(self):
+        delta_1d = pd.to_timedelta(1, unit='D')
+        delta_0d = pd.to_timedelta(0, unit='D')
+        delta_1s = pd.to_timedelta(1, unit='s')
+        delta_500ms = pd.to_timedelta(500, unit='ms')
+
+        self.assertEqual(tslib.repr_timedelta64(delta_1d, format='short'), "1 days")
+        self.assertEqual(tslib.repr_timedelta64(-delta_1d, format='short'), "-1 days")
+        self.assertEqual(tslib.repr_timedelta64(delta_0d, format='short'), "00:00:00")
+        self.assertEqual(tslib.repr_timedelta64(delta_1s, format='short'), "00:00:01")
+        self.assertEqual(tslib.repr_timedelta64(delta_500ms, format='short'), "00:00:00.500000")
+        self.assertEqual(tslib.repr_timedelta64(delta_1d + delta_1s, format='short'), "1 days, 00:00:01")
+        self.assertEqual(tslib.repr_timedelta64(delta_1d + delta_500ms, format='short'), "1 days, 00:00:00.500000")
+
+    def test_long(self):
+        delta_1d = pd.to_timedelta(1, unit='D')
+        delta_0d = pd.to_timedelta(0, unit='D')
+        delta_1s = pd.to_timedelta(1, unit='s')
+        delta_500ms = pd.to_timedelta(500, unit='ms')
+
+        self.assertEqual(tslib.repr_timedelta64(delta_1d, format='long'), "1 days, 00:00:00")
+        self.assertEqual(tslib.repr_timedelta64(-delta_1d, format='long'), "-1 days, 00:00:00")
+        self.assertEqual(tslib.repr_timedelta64(delta_0d, format='long'), "0 days, 00:00:00")
+        self.assertEqual(tslib.repr_timedelta64(delta_1s, format='long'), "0 days, 00:00:01")
+        self.assertEqual(tslib.repr_timedelta64(delta_500ms, format='long'), "0 days, 00:00:00.500000")
+        self.assertEqual(tslib.repr_timedelta64(delta_1d + delta_1s, format='long'), "1 days, 00:00:01")
+        self.assertEqual(tslib.repr_timedelta64(delta_1d + delta_500ms, format='long'), "1 days, 00:00:00.500000")
+
+
+class TestTimedelta64Formatter(unittest.TestCase):
+    def test_mixed(self):
+        x = pd.to_timedelta(list(range(5)) + [pd.NaT], unit='D')
+        y = pd.to_timedelta(list(range(5)) + [pd.NaT], unit='s')
+        result = fmt.Timedelta64Formatter(x + y).get_result()
+        self.assertEqual(result[0].strip(), "0 days, 00:00:00")
+        self.assertEqual(result[1].strip(), "1 days, 00:00:01")
+
+    def test_mixed_neg(self):
+        x = pd.to_timedelta(list(range(5)) + [pd.NaT], unit='D')
+        y = pd.to_timedelta(list(range(5)) + [pd.NaT], unit='s')
+        result = fmt.Timedelta64Formatter(-(x + y)).get_result()
+        self.assertEqual(result[0].strip(), "0 days, 00:00:00")
+        self.assertEqual(result[1].strip(), "-1 days, 00:00:01")
+
+    def test_days(self):
+        x = pd.to_timedelta(list(range(5)) + [pd.NaT], unit='D')
+        result = fmt.Timedelta64Formatter(x).get_result()
+        self.assertEqual(result[0].strip(), "0 days")
+        self.assertEqual(result[1].strip(), "1 days")
+
+        result = fmt.Timedelta64Formatter(x[1:2]).get_result()
+        self.assertEqual(result[0].strip(), "1 days")
+
+    def test_days_neg(self):
+        x = pd.to_timedelta(list(range(5)) + [pd.NaT], unit='D')
+        result = fmt.Timedelta64Formatter(-x).get_result()
+        self.assertEqual(result[0].strip(), "0 days")
+        self.assertEqual(result[1].strip(), "-1 days")
+
+    def test_subdays(self):
+        y = pd.to_timedelta(list(range(5)) + [pd.NaT], unit='s')
+        result = fmt.Timedelta64Formatter(y).get_result()
+        self.assertEqual(result[0].strip(), "00:00:00")
+        self.assertEqual(result[1].strip(), "00:00:01")
+
+    def test_subdays_neg(self):
+        y = pd.to_timedelta(list(range(5)) + [pd.NaT], unit='s')
+        result = fmt.Timedelta64Formatter(-y).get_result()
+        self.assertEqual(result[0].strip(), "00:00:00")
+        self.assertEqual(result[1].strip(), "-00:00:01")
+
+    def test_zero(self):
+        x = pd.to_timedelta(list(range(1)) + [pd.NaT], unit='D')
+        result = fmt.Timedelta64Formatter(x).get_result()
+        self.assertEqual(result[0].strip(), "0 days")
+
+        x = pd.to_timedelta(list(range(1)), unit='D')
+        result = fmt.Timedelta64Formatter(x).get_result()
+        self.assertEqual(result[0].strip(), "0 days")
 
 if __name__ == '__main__':
     import nose
