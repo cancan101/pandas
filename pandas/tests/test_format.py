@@ -13,7 +13,7 @@ from numpy import nan
 from numpy.random import randn
 import numpy as np
 
-from pandas import DataFrame, Series, Index
+from pandas import DataFrame, Series, Index, _np_version_under1p7
 
 import pandas.core.format as fmt
 import pandas.util.testing as tm
@@ -31,23 +31,29 @@ def curpath():
     pth, _ = os.path.split(os.path.abspath(__file__))
     return pth
 
+
 def has_info_repr(df):
     r = repr(df)
     return r.split('\n')[0].startswith("<class")
+
 
 def has_horizontally_truncated_repr(df):
     r = repr(df)
     return any(l.strip().endswith('...') for l in r.splitlines())
 
+
 def has_vertically_truncated_repr(df):
     r = repr(df)
     return '..' in r.splitlines()[-3]
 
+
 def has_truncated_repr(df):
     return has_horizontally_truncated_repr(df) or has_vertically_truncated_repr(df)
 
+
 def has_doubly_truncated_repr(df):
     return has_horizontally_truncated_repr(df) and has_vertically_truncated_repr(df)
+
 
 def has_expanded_repr(df):
     r = repr(df)
@@ -55,6 +61,13 @@ def has_expanded_repr(df):
         if line.endswith('\\'):
             return True
     return False
+
+
+def skip_if_np_version_under1p7():
+    if _np_version_under1p7:
+        import nose
+
+        raise nose.SkipTest('numpy >= 1.7 required')
 
 
 class TestDataFrameFormatting(tm.TestCase):
@@ -2045,6 +2058,10 @@ class TestFloatArrayFormatter(tm.TestCase):
 
 
 class TestRepr_timedelta64(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        skip_if_np_version_under1p7()
+
     def test_legacy(self):
         delta_1d = pd.to_timedelta(1, unit='D')
         delta_0d = pd.to_timedelta(0, unit='D')
@@ -2089,6 +2106,10 @@ class TestRepr_timedelta64(unittest.TestCase):
 
 
 class TestTimedelta64Formatter(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        skip_if_np_version_under1p7()
+
     def test_mixed(self):
         x = pd.to_timedelta(list(range(5)) + [pd.NaT], unit='D')
         y = pd.to_timedelta(list(range(5)) + [pd.NaT], unit='s')
