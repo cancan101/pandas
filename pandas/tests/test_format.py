@@ -1822,7 +1822,7 @@ class TestSeriesFormatting(tm.TestCase):
         s2 = Series(date_range('2012-1-1', periods=3, freq='D')) + td
         y = s - s2
         result = y.to_string()
-        self.assertTrue('-00:05:03' in result, result)
+        self.assertTrue('-00:05:03' in result)
 
         td = timedelta(microseconds=550)
         s2 = Series(date_range('2012-1-1', periods=3, freq='D')) + td
@@ -2058,7 +2058,7 @@ class TestFloatArrayFormatter(tm.TestCase):
         self.assertEqual(result[1], "  0")
 
 
-class TestRepr_timedelta64(unittest.TestCase):
+class TestRepr_timedelta64(tm.TestCase):
     @classmethod
     def setUpClass(cls):
         skip_if_np_version_under1p7()
@@ -2106,7 +2106,7 @@ class TestRepr_timedelta64(unittest.TestCase):
         self.assertEqual(tslib.repr_timedelta64(delta_1d + delta_500ms, format='long'), "1 days, 00:00:00.500000")
 
 
-class TestTimedelta64Formatter(unittest.TestCase):
+class TestTimedelta64Formatter(tm.TestCase):
     @classmethod
     def setUpClass(cls):
         skip_if_np_version_under1p7()
@@ -2162,7 +2162,7 @@ class TestTimedelta64Formatter(unittest.TestCase):
         self.assertEqual(result[0].strip(), "0 days")
 
 
-class TestDatetime64Formatter(unittest.TestCase):
+class TestDatetime64Formatter(tm.TestCase):
     def test_mixed(self):
         x = pd.Series([datetime(2013, 1, 1), datetime(2013, 1, 1, 12), pd.NaT])
         result = fmt.Datetime64Formatter(x).get_result()
@@ -2176,7 +2176,7 @@ class TestDatetime64Formatter(unittest.TestCase):
         self.assertEqual(result[1].strip(), "2013-01-02")
 
 
-class TestNaTFormatting(unittest.TestCase):
+class TestNaTFormatting(tm.TestCase):
     def test_repr(self):
         self.assertEqual(repr(pd.NaT), "NaT")
 
@@ -2184,7 +2184,7 @@ class TestNaTFormatting(unittest.TestCase):
         self.assertEqual(str(pd.NaT), "NaT")
 
 
-class TestDatetimeIndexFormat(unittest.TestCase):
+class TestDatetimeIndexFormat(tm.TestCase):
     def test_datetime(self):
         formatted = pd.to_datetime([datetime(2003, 1, 1, 12), pd.NaT]).format()
         self.assertEqual(formatted[0], "2003-01-01 12:00:00")
