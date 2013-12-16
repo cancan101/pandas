@@ -361,6 +361,9 @@ class NaTType(_NaT):
     def __repr__(self):
         return 'NaT'
 
+    def __str__(self):
+        return 'NaT'
+
     def __hash__(self):
         return iNaT
 

@@ -627,30 +627,14 @@ class DatetimeIndex(Int64Index):
     def _format_with_header(self, header, **kwargs):
         return header + self._format_native_types(**kwargs)
 
-    def _format_native_types(self, na_rep=u('NaT'), date_format=None, **kwargs):
+    def _format_native_types(self, na_rep=u('NaT'),
+                             date_format=None, **kwargs):
         data = list(self)
-
-        # tz formatter or time formatter
-        zero_time = time(0, 0)
-        if date_format is None:
-            for d in data:
-                if d.time() != zero_time or d.tzinfo is not None:
-                    return [u('%s') % x for x in data]
-
-        values = np.array(data, dtype=object)
-        mask = isnull(self.values)
-        values[mask] = na_rep
-
-        imask = -mask
-
-        if date_format is None:
-            date_formatter = lambda x: u('%d-%.2d-%.2d' % (x.year, x.month, x.day))
-        else:
-            date_formatter = lambda x: u(x.strftime(date_format))
-
-        values[imask] = np.array([date_formatter(dt) for dt in values[imask]])
-
-        return values.tolist()
+        from pandas.core.format import Datetime64Formatter
+        return Datetime64Formatter(values=data,
+                                   nat_rep=na_rep,
+                                   date_format=date_format,
+                                   justify='all').get_result()
 
     def isin(self, values):
         """

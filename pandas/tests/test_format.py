@@ -2175,6 +2175,32 @@ class TestDatetime64Formatter(unittest.TestCase):
         self.assertEqual(result[0].strip(), "2013-01-01")
         self.assertEqual(result[1].strip(), "2013-01-02")
 
+
+class TestNaTFormatting(unittest.TestCase):
+    def test_repr(self):
+        self.assertEqual(repr(pd.NaT), "NaT")
+
+    def test_str(self):
+        self.assertEqual(str(pd.NaT), "NaT")
+
+
+class TestDatetimeIndexFormat(unittest.TestCase):
+    def test_datetime(self):
+        formatted = pd.to_datetime([datetime(2003, 1, 1, 12), pd.NaT]).format()
+        self.assertEqual(formatted[0], "2003-01-01 12:00:00")
+        self.assertEqual(formatted[1], "NaT")
+
+    def test_date(self):
+        formatted = pd.to_datetime([datetime(2003, 1, 1), pd.NaT]).format()
+        self.assertEqual(formatted[0], "2003-01-01")
+        self.assertEqual(formatted[1], "NaT")
+
+    def test_date_explict_date_format(self):
+        formatted = pd.to_datetime([datetime(2003, 2, 1), pd.NaT]).format(date_format="%m-%d-%Y", na_rep="UT")
+        self.assertEqual(formatted[0], "02-01-2003")
+        self.assertEqual(formatted[1], "UT")
+
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

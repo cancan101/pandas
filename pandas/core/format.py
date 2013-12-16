@@ -1611,7 +1611,7 @@ def format_array(values, formatter, float_format=None, na_rep='NaN',
     if digits is None:
         digits = get_option("display.precision")
 
-    fmt_obj = fmt_klass(values, digits, na_rep=na_rep,
+    fmt_obj = fmt_klass(values, digits=digits, na_rep=na_rep,
                         float_format=float_format,
                         formatter=formatter, space=space,
                         justify=justify)
@@ -1748,28 +1748,38 @@ class IntArrayFormatter(GenericArrayFormatter):
 
 
 class Datetime64Formatter(GenericArrayFormatter):
+    def __init__(self, values, nat_rep='NaT', date_format=None, **kwargs):
+        super(Datetime64Formatter, self).__init__(values, **kwargs)
+        self.nat_rep = nat_rep
+        self.date_format = date_format
 
     def _format_strings(self):
-        formatter = self.formatter or get_format_datetime64(self.values)
+        formatter = self.formatter or _get_format_datetime64(
+                                                self.values,
+                                                nat_rep=self.nat_rep,
+                                                date_format=self.date_format)
 
         fmt_values = [formatter(x) for x in self.values]
 
         return fmt_values
 
 
-def _format_datetime64(x, tz=None):
+def _format_datetime64(x, tz=None, nat_rep='NaT'):
     if isnull(x):
-        return 'NaT'
+        return nat_rep
 
     stamp = lib.Timestamp(x, tz=tz)
     return stamp._repr_base
 
 
-def _format_datetime64_dateonly(x, tz=None):
+def _format_datetime64_dateonly(x, tz=None, nat_rep='NaT', date_format=None):
     if isnull(x):
-        return 'NaT'
+        return nat_rep
 
     stamp = lib.Timestamp(x, tz=tz)
+    if date_format:
+        return stamp.strftime(date_format)
+
     return stamp._date_repr
 
 
@@ -1784,11 +1794,13 @@ def _is_dates_only(values):
     return True
 
 
-def get_format_datetime64(values):
+def _get_format_datetime64(values, nat_rep='NaT', date_format=None):
     if _is_dates_only(values):
-        return _format_datetime64_dateonly
+        return lambda x: _format_datetime64_dateonly(x,
+                                nat_rep=nat_rep,
+                                date_format=date_format)
     else:
-        return _format_datetime64
+        return lambda x: _format_datetime64(x, nat_rep=nat_rep)
 
 
 class Timedelta64Formatter(GenericArrayFormatter):
@@ -1806,8 +1818,9 @@ def _get_format_timedelta64(values):
 
     consider_values = values_int != iNaT
 
-    even_days = np.logical_and(consider_values, values_int % (86400 * 1e9) != 0).sum() == 0
-    all_sub_day = np.logical_and(consider_values, np.abs(values_int) >= (86400 * 1e9)).sum() == 0
+    one_day_in_nanos = (86400 * 1e9)
+    even_days = np.logical_and(consider_values, values_int % one_day_in_nanos != 0).sum() == 0
+    all_sub_day = np.logical_and(consider_values, np.abs(values_int) >= one_day_in_nanos).sum() == 0
 
     format_short = even_days or all_sub_day
     format = "short" if format_short else "long"
@@ -1824,7 +1837,8 @@ def _get_format_timedelta64(values):
 
 
 def _make_fixed_width(strings, justify='right', minimum=None, truncated=False):
-    if len(strings) == 0:
+
+    if len(strings) == 0 or justify == 'all':
         return strings
 
     _strlen = _strlen_func()
