@@ -786,11 +786,11 @@ class TestDataFrameFormatting(tm.TestCase):
         with option_context('mode.sim_interactive', True):
             col = lambda l, k: [tm.rands(k) for _ in range(l)]
             max_cols = get_option('display.max_columns')
-            df = DataFrame([col(max_cols-1, 25) for _ in range(10)])
+            df = DataFrame([col(max_cols - 1, 25) for _ in range(10)])
             set_option('display.expand_frame_repr', False)
             rep_str = repr(df)
-            print(rep_str)
-            assert "10 rows x %d columns" % (max_cols-1) in rep_str
+
+            assert "10 rows x %d columns" % (max_cols - 1) in rep_str
             set_option('display.expand_frame_repr', True)
             wide_repr = repr(df)
             self.assert_(rep_str != wide_repr)
@@ -2194,6 +2194,13 @@ class TestDatetimeIndexFormat(tm.TestCase):
         formatted = pd.to_datetime([datetime(2003, 1, 1), pd.NaT]).format()
         self.assertEqual(formatted[0], "2003-01-01")
         self.assertEqual(formatted[1], "NaT")
+
+    def test_date_tz(self):
+        formatted = pd.to_datetime([datetime(2013,1,1)], utc=True).format()
+        self.assertEqual(formatted[0], "2013-01-01 00:00:00+00:00")
+
+        formatted = pd.to_datetime([datetime(2013,1,1), pd.NaT], utc=True).format()
+        self.assertEqual(formatted[0], "2013-01-01 00:00:00+00:00")
 
     def test_date_explict_date_format(self):
         formatted = pd.to_datetime([datetime(2003, 2, 1), pd.NaT]).format(date_format="%m-%d-%Y", na_rep="UT")

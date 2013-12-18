@@ -1769,6 +1769,8 @@ def _format_datetime64(x, tz=None, nat_rep='NaT'):
         return nat_rep
 
     stamp = lib.Timestamp(x, tz=tz)
+    if stamp.tzinfo is not None:
+        return str(stamp)
     return stamp._repr_base
 
 
