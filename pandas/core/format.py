@@ -1754,7 +1754,7 @@ class Datetime64Formatter(GenericArrayFormatter):
         self.date_format = date_format
 
     def _format_strings(self):
-        formatter = self.formatter or _get_format_datetime64(
+        formatter = self.formatter or _get_format_datetime64_from_values(
                                                 self.values,
                                                 nat_rep=self.nat_rep,
                                                 date_format=self.date_format)
@@ -1796,13 +1796,23 @@ def _is_dates_only(values):
     return True
 
 
-def _get_format_datetime64(values, nat_rep='NaT', date_format=None):
-    if _is_dates_only(values):
+def _get_format_datetime64(is_date_only, nat_rep='NaT', date_format=None):
+
+    if is_date_only:
         return lambda x: _format_datetime64_dateonly(x,
                                 nat_rep=nat_rep,
                                 date_format=date_format)
     else:
         return lambda x: _format_datetime64(x, nat_rep=nat_rep)
+
+
+def _get_format_datetime64_from_values(values,
+                                       nat_rep='NaT',
+                                       date_format=None):
+    is_date_only = _is_dates_only(values)
+    return _get_format_datetime64(is_date_only=is_date_only,
+                                  nat_rep=nat_rep,
+                                  date_format=date_format)
 
 
 class Timedelta64Formatter(GenericArrayFormatter):
