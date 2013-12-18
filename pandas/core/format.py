@@ -1796,21 +1796,21 @@ def _is_dates_only(values):
     return True
 
 
-def _get_format_datetime64(is_date_only, nat_rep='NaT', date_format=None):
+def _get_format_datetime64(is_dates_only, nat_rep='NaT', date_format=None):
 
-    if is_date_only:
-        return lambda x: _format_datetime64_dateonly(x,
+    if is_dates_only:
+        return lambda x, tz=None: _format_datetime64_dateonly(x, tz=tz,
                                 nat_rep=nat_rep,
                                 date_format=date_format)
     else:
-        return lambda x: _format_datetime64(x, nat_rep=nat_rep)
+        return lambda x, tz=None: _format_datetime64(x, tz=tz, nat_rep=nat_rep)
 
 
 def _get_format_datetime64_from_values(values,
                                        nat_rep='NaT',
                                        date_format=None):
-    is_date_only = _is_dates_only(values)
-    return _get_format_datetime64(is_date_only=is_date_only,
+    is_dates_only = _is_dates_only(values)
+    return _get_format_datetime64(is_dates_only=is_dates_only,
                                   nat_rep=nat_rep,
                                   date_format=date_format)
 
