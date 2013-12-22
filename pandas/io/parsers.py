@@ -1289,6 +1289,8 @@ class PythonParser(ParserBase):
             )
             # Update list of original names to include all indices.
             self.num_original_columns = len(self.columns)
+        elif len(self.columns) == 0:
+            pass
         else:
             self.columns = self.columns[0]
 
@@ -1489,7 +1491,10 @@ class PythonParser(ParserBase):
 
             columns = []
             for level, hr in enumerate(header):
-                line = self._buffered_line()
+                try:
+                    line = self._buffered_line()
+                except StopIteration:
+                    return [], 0
 
                 while self.pos <= hr:
                     line = self._next_line()
@@ -1558,7 +1563,10 @@ class PythonParser(ParserBase):
                 columns = self._handle_usecols(columns, columns[0])
         else:
             # header is None
-            line = self._buffered_line()
+            try:
+                line = self._buffered_line()
+            except StopIteration:
+                return [], 0
             ncols = len(line)
             num_original_columns = ncols
             if not names:
