@@ -696,7 +696,12 @@ def infer_freq(index, warn=True):
 
     index = pd.DatetimeIndex(index)
     inferer = _FrequencyInferer(index, warn=warn)
-    return inferer.get_freq()
+    return to_offset(inferer.get_freq())
+
+
+def infer_freqstr(index, warn=True):
+    return infer_freq(index, warn).freqstr
+
 
 _ONE_MICRO = long(1000)
 _ONE_MILLI = _ONE_MICRO * 1000
