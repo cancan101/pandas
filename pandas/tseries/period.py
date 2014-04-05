@@ -74,7 +74,7 @@ class Period(PandasObject):
     minute : int, default 0
     second : int, default 0
     """
-    __slots__ = ['freq_obj', 'ordinal']
+    __slots__ = ['freq', 'ordinal']
     _comparables = ['name', 'freqstr']
 
     def __init__(self, value=None, freq=None, ordinal=None,
@@ -107,10 +107,10 @@ class Period(PandasObject):
         elif isinstance(value, Period):
             other = value
             if freq is None \
-                or freq == other.freq_obj \
-                or _gfc(freq, as_periodstr=True) == _gfc(other.freq_obj, as_periodstr=True):
+                or freq == other.freq \
+                or _gfc(freq, as_periodstr=True) == _gfc(other.freq, as_periodstr=True):
                 self.ordinal = other.ordinal
-                freq = other.freq_obj
+                freq = other.freq
             else:
                 converted = other.asfreq(freq)
                 self.ordinal = converted.ordinal
@@ -139,7 +139,7 @@ class Period(PandasObject):
             msg = "Value must be Period, string, integer, or datetime"
             raise ValueError(msg)
 
-        self.freq_obj = freq
+        self.freq = freq
         _check_freq_mult(freq)
 
         if self.ordinal is None:
@@ -153,8 +153,8 @@ class Period(PandasObject):
                                                     base)
 
     @cache_readonly
-    def freq(self):
-        return _freq_mod.get_standard_period_freq(self.freq_obj)
+    def freqstr(self):
+        return _freq_mod.get_standard_period_freq(self.freq)
 
     def __eq__(self, other):
         if isinstance(other, Period):
@@ -237,8 +237,8 @@ class Period(PandasObject):
         _check_freq_mult(freq)
         end = how == 'E'
 
-        if isinstance(self.freq_obj, _NonCythonPeriod):
-            value = self.freq_obj.period_asfreq_value(self.ordinal, end)
+        if isinstance(self.freq, _NonCythonPeriod):
+            value = self.freq.period_asfreq_value(self.ordinal, end)
             return Period(value=value, freq=freq)
         elif isinstance(freq, _NonCythonPeriod):
             freq_int, _ = _gfc(self.freq)
@@ -313,21 +313,20 @@ class Period(PandasObject):
         return Period(datetime.now(), freq=freq)
     
     def __get_formatted(self, fmt=None):
-        if isinstance(self.freq_obj, _NonCythonPeriod):
-            return self.freq_obj.period_format(self.ordinal, fmt=fmt)
+        if isinstance(self.freq, _NonCythonPeriod):
+            return self.freq.period_format(self.ordinal, fmt=fmt)
         
         base, mult = _gfc(self.freq)
         return tslib.period_format(self.ordinal, base, fmt=fmt)
 
     def __repr__(self):
-        freqstr = _freq_mod.get_standard_period_freq(self.freq_obj)
         formatted = self.__get_formatted()
         
         if not compat.PY3:
             encoding = com.get_option("display.encoding")
             formatted = formatted.encode(encoding)
 
-        return "Period('%s', '%s')" % (formatted, freqstr)
+        return "Period('%s', '%s')" % (formatted, self.freqstr)
 
     def __unicode__(self):
         """
@@ -638,7 +637,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
                 quarter=None, day=None, hour=None, minute=None, second=None,
                 tz=None):
 
-        freq_obj = freq
+        freq_orig = freq
 
         if periods is not None:
             if com.is_float(periods):
@@ -653,22 +652,22 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             else:
                 fields = [year, month, quarter, day, hour, minute, second]
                 data, freq = cls._generate_range(start, end, periods,
-                                                 freq_obj, fields)
+                                                 freq_orig, fields)
         else:
-            ordinal, freq = cls._from_arraylike(data, freq_obj, tz)
+            ordinal, freq = cls._from_arraylike(data, freq_orig, tz)
             data = np.array(ordinal, dtype=np.int64, copy=False)
 
         subarr = data.view(cls)
         subarr.name = name
 
-        # If freq_obj was initially none, fall back to freq
-        subarr.freq_obj = freq_obj if freq_obj is not None else freq
+        # If freq_orig was initially none, fall back to freq
+        subarr.freq = freq_orig if freq_orig is not None else freq
 
         return subarr
 
     @cache_readonly
-    def freq(self):
-        return _freq_mod.get_standard_period_freq(self.freq_obj)
+    def freqstr(self):
+        return _freq_mod.get_standard_period_freq(self.freq)
 
     @classmethod
     def _generate_range(cls, start, end, periods, freq, fields):
@@ -808,7 +807,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
     def __iter__(self):
         for val in self.values:
-            yield Period(ordinal=val, freq=self.freq_obj)
+            yield Period(ordinal=val, freq=self.freq)
 
     def searchsorted(self, key, side='left'):
         if isinstance(key, compat.string_types):
@@ -832,26 +831,36 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         values = self.values
         return ((values[1:] - values[:-1]) < 2).all()
 
+
     @property
     def freqstr(self):
         return self.freq
+
+    def factorize(self):
+        """
+        Specialized factorize that boxes uniques
+        """
+        from pandas.core.algorithms import factorize
+        labels, uniques = factorize(self.values)
+        uniques = PeriodIndex(ordinal=uniques, freq=self.freq)
+        return labels, uniques
 
     def asfreq(self, freq=None, how='E'):
         how = _validate_end_alias(how)
         _check_freq_mult(freq)
 
-        freq_obj = freq
+        freq_orig = freq
 
         end = how == 'E'
 
-        if isinstance(self.freq_obj, _NonCythonPeriod):
-            new_data = self.freq_obj.period_asfreq_arr(
-                                            self.values, freq_obj, end)
+        if isinstance(self.freq, _NonCythonPeriod):
+            new_data = self.freq.period_asfreq_arr(
+                                            self.values, freq_orig, end)
             freq = _freq_mod.get_standard_freq(freq)
-        elif isinstance(freq_obj, _NonCythonPeriod):
-            freq = freq_obj.periodstr
+        elif isinstance(freq_orig, _NonCythonPeriod):
+            freq = freq_orig.periodstr
             freq_int_from, _ = _gfc(self.freq)
-            new_data = freq_obj.period_fromfreq_arr(
+            new_data = freq_orig.period_fromfreq_arr(
                                             self.values, freq_int_from, end)
         else:
             freq = _freq_mod.get_standard_freq(freq)
@@ -860,7 +869,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
         end = how == 'E'
         new_data = tslib.period_asfreq_arr(self.values, base1, base2, end)
-        return self._simple_new(new_data, self.name, freq=freq_obj)
+        return self._simple_new(new_data, self.name, freq=freq_orig)
 
     def to_datetime(self, dayfirst=False):
         return self.to_timestamp()
@@ -984,7 +993,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             return _maybe_box(self, super(PeriodIndex, self).get_value(s, key), series, key)
         except (KeyError, IndexError):
             try:
-                asdt, parsed, reso = parse_time_string(key, self.freq_obj)
+                asdt, parsed, reso = parse_time_string(key, self.freq)
                 grp = _freq_mod._infer_period_group(reso)
                 freqn = _freq_mod._period_group(self.freq)
 
@@ -1010,7 +1019,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             except TypeError:
                 pass
 
-            key = Period(key, self.freq_obj).ordinal
+            key = Period(key, self.freq).ordinal
             return _maybe_box(self, self._engine.get_value(s, key), series, key)
 
     def get_loc(self, key):
@@ -1140,7 +1149,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     def _apply_meta(self, rawarr):
         if not isinstance(rawarr, PeriodIndex):
             rawarr = rawarr.view(PeriodIndex)
-        rawarr.freq_obj = self.freq_obj
+        rawarr.freq = self.freq
         return rawarr
 
     def __getitem__(self, key):
@@ -1148,7 +1157,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         arr_idx = self.view(np.ndarray)
         if np.isscalar(key):
             val = arr_idx[key]
-            return Period(ordinal=val, freq=self.freq_obj)
+            return Period(ordinal=val, freq=self.freq)
         else:
             if com._is_bool_indexer(key):
                 key = np.asarray(key)
@@ -1159,9 +1168,9 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
                 # values = np.asarray(list(values), dtype=object)
                 # return values.reshape(result.shape)
 
-                return PeriodIndex(result, name=self.name, freq=self.freq_obj)
+                return PeriodIndex(result, name=self.name, freq=self.freq)
 
-            return PeriodIndex(result, name=self.name, freq=self.freq_obj)
+            return PeriodIndex(result, name=self.name, freq=self.freq)
 
     def _format_with_header(self, header, **kwargs):
         return header + self._format_native_types(**kwargs)
@@ -1180,7 +1189,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         if not self.ndim:  # pragma: no cover
             return self.item()
 
-        self.freq_obj = getattr(obj, 'freq_obj', None)
+        self.freq = getattr(obj, 'freq', None)
         self.name = getattr(obj, 'name', None)
         self._reset_identity()
 
@@ -1222,7 +1231,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         """
         indices = com._ensure_platform_int(indices)
         taken = self.values.take(indices, axis=axis)
-        return self._simple_new(taken, self.name, freq=self.freq_obj)
+        return self._simple_new(taken, self.name, freq=self.freq)
 
     def append(self, other):
         """
@@ -1277,7 +1286,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             np.ndarray.__setstate__(self, nd_state)
             self.name = own_state[0]
             try:  # backcompat
-                self.freq_obj = own_state[1]
+                self.freq = own_state[1]
             except:
                 pass
         else:  # pragma: no cover
