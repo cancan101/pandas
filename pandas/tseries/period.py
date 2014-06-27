@@ -873,9 +873,8 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             freq = _freq_mod.get_standard_freq(freq)
             base1, _ = _gfc(self.freq)
             base2, _ = _gfc(freq)
+            new_data = tslib.period_asfreq_arr(self.values, base1, base2, end)
 
-        end = how == 'E'
-        new_data = tslib.period_asfreq_arr(self.values, base1, base2, end)
         return self._simple_new(new_data, self.name, freq=freq_orig)
 
     def to_datetime(self, dayfirst=False):
