@@ -177,7 +177,6 @@ API changes
     covs[df.index[-1]]
 
 - ``Series.iteritems()`` is now lazy (returns an iterator rather than a list). This was the documented behavior prior to 0.14. (:issue:`6760`)
-- ``pd.infer_freq`` and ``DatetimeIndex.inferred_freq`` now return a DateOffset subclass rather than a string.  (:issue:`5082`)
 - Added ``nunique`` and ``value_counts`` functions to ``Index`` for counting unique elements. (:issue:`6734`)
 - ``stack`` and ``unstack`` now raise a ``ValueError`` when the ``level`` keyword refers
   to a non-unique item in the ``Index`` (previously raised a ``KeyError``). (:issue:`6738`)
@@ -226,6 +225,7 @@ API changes
 - change ``AssertionError`` to ``TypeError`` for invalid types passed to ``concat`` (:issue:`6583`)
 - Raise a ``TypeError`` when ``DataFrame`` is passed an iterator as the
   ``data`` argument (:issue:`5357`)
+- ``pd.infer_freq`` and ``DatetimeIndex.inferred_freq`` now return a DateOffset subclass rather than a string.  (:issue:`5082`)
 
 
 .. _whatsnew_0140.display:
@@ -811,7 +811,6 @@ Enhancements
                 columns=Grouper(freq='M', key='PayDay'),
                 values='Quantity', aggfunc=np.sum)
 
-<<<<<<< HEAD
 - Arrays of strings can be wrapped to a specified width (``str.wrap``) (:issue:`6999`)
 - Add :meth:`~Series.nsmallest` and :meth:`Series.nlargest` methods to Series, See :ref:`the docs <basics.nsorted>` (:issue:`3960`)
 
@@ -838,6 +837,8 @@ Enhancements
 - Constructor for ``Period`` now takes full set of possible ``Offset`` objects for ``freq``
   parameter. (:issue:`4878`)
 - Extends the number of ``Period``s supported by allowing for Python defined ``Period``s (:issue:`5148`)
+- Added ``inferred_freq_offset`` as property on ``DatetimeIndex`` to provide the actual
+  Offset object rather than the string representation (:issue:`5082`).
 
 
 .. _whatsnew_0140.performance:
@@ -1043,3 +1044,4 @@ Bug Fixes
 - Bug in expressions evaluation with reversed ops, showing in series-dataframe ops (:issue:`7198`, :issue:`7192`)
 - Bug in multi-axis indexing with > 2 ndim and a multi-index (:issue:`7199`)
 - Fix a bug where invalid eval/query operations would blow the stack (:issue:`5198`)
+- Bug in not correctly treating 'QS', 'BQS', 'BQ', 'Y' as frquency aliases (:issue:`5028`).
