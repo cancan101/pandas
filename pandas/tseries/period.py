@@ -774,12 +774,8 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
     @property
     def _box_func(self):
-        return lambda x: Period(ordinal=x, freq=self.freq)
-
-    def _box_values(self, values):
         freq = self.freq
-        f = lambda x: Period(ordinal=x, freq=freq)
-        return lib.map_infer(values, f)
+        return lambda x: Period(ordinal=x, freq=freq)
 
     def asof_locs(self, where, mask):
         """
@@ -838,19 +834,9 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         values = self.values
         return ((values[1:] - values[:-1]) < 2).all()
 
-
     @property
     def freqstr(self):
         return self.freq
-
-    def factorize(self):
-        """
-        Specialized factorize that boxes uniques
-        """
-        from pandas.core.algorithms import factorize
-        labels, uniques = factorize(self.values)
-        uniques = PeriodIndex(ordinal=uniques, freq=self.freq)
-        return labels, uniques
 
     def asfreq(self, freq=None, how='E'):
         how = _validate_end_alias(how)
