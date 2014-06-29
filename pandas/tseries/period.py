@@ -834,10 +834,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         values = self.values
         return ((values[1:] - values[:-1]) < 2).all()
 
-    @property
-    def freqstr(self):
-        return self.freq
-
     def asfreq(self, freq=None, how='E'):
         how = _validate_end_alias(how)
         _check_freq_mult(freq)
