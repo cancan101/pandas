@@ -433,9 +433,10 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     arg = arg.upper()
 
     if isinstance(freq, DateOffset):
-        parsed_dt = freq.parse_time_string(arg)
-        if parsed_dt is not None:
-            return parsed_dt, parsed_dt, freq.name
+        parsed_ret = freq.parse_time_string(arg)
+        if parsed_ret is not None:
+            parsed_dt, parsed_reso = parsed_ret
+            return parsed_dt, parsed_dt, parsed_reso
 
     default = datetime(1, 1, 1).replace(hour=0, minute=0,
                                         second=0, microsecond=0)

@@ -2814,15 +2814,15 @@ class TestFY5253QuarterPeriods(tm.TestCase):
         self.assertEqual(_try_parse_qtr_time_string("1Q14"), (2014, 1))
 
         self.assertEqual(
-            str(Period(offset.parse_time_string("2013Q4"),
+            str(Period(offset.parse_time_string("2013Q4")[0],
                        freq=offset)), "2013Q4")
 
         self.assertEqual(offset.get_period_ordinal(
-                            offset.parse_time_string("2013Q4")), 2013 * 4 + 3)
+                            offset.parse_time_string("2013Q4")[0]), 2013 * 4 + 3)
 
         self.assertEqual(offset.period_format(
                             offset.get_period_ordinal(
-                                offset.parse_time_string("2013Q4"))), "2013Q4")
+                                offset.parse_time_string("2013Q4")[0])), "2013Q4")
 
     def test_period_asfreq1(self):
         offset = FY5253Quarter(weekday=WeekDay.SAT, startingMonth=12,

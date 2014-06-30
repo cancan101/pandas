@@ -625,6 +625,10 @@ def _infer_period_group(freqstr):
 
 
 def _period_group(freqstr):
+    if isinstance(freqstr, DateOffset):
+        period_group = freqstr.get_period_group()
+        if period_group is not None:
+            return period_group
     base, mult = get_freq_code(freqstr)
     return base // 1000 * 1000
 
@@ -634,7 +638,7 @@ _period_alias_dict = _period_alias_dictionary()
 def _period_str_to_code(freqstr):
     # hack
     freqstr = _rule_aliases.get(freqstr, freqstr)
-    
+
     if freqstr not in _dont_uppercase:
         freqstr = _rule_aliases.get(freqstr.lower(), freqstr)
 

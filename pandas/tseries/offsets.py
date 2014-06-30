@@ -377,6 +377,9 @@ class DateOffset(object):
     def parse_time_string(self, arg):
         return None
 
+    def get_period_group(self):
+        return None
+
 
 class SingleConstructorOffset(DateOffset):
     @classmethod
@@ -558,7 +561,7 @@ class CustomBusinessDay(BusinessDay):
         self.kwds = kwds
         self.offset = kwds.get('offset', timedelta(0))
         self.weekmask = kwds.get('weekmask', 'Mon Tue Wed Thu Fri')
-        
+
         if 'calendar' in kwds:
             holidays = kwds['calendar'].holidays()
         else:
@@ -813,7 +816,7 @@ class CustomBusinessMonthEnd(BusinessMixin, MonthOffset):
         cur_mend = self.m_offset.rollforward(dt_in)
         # Find this custom month offset
         cur_cmend = self.cbday.rollback(cur_mend)
-        
+
         # handle zero case. arbitrarily rollforward
         if n == 0 and dt_in != cur_cmend:
             n += 1
@@ -822,11 +825,11 @@ class CustomBusinessMonthEnd(BusinessMixin, MonthOffset):
             n -= 1
         elif dt_in > cur_cmend and n <= -1:
             n += 1
- 
+
         new = cur_mend + n * MonthEnd()
         result = self.cbday.rollback(new)
         return as_timestamp(result)
-        
+
 class CustomBusinessMonthBegin(BusinessMixin, MonthOffset):
     """
     **EXPERIMENTAL** DateOffset of one custom business month
@@ -877,7 +880,7 @@ class CustomBusinessMonthBegin(BusinessMixin, MonthOffset):
             n += 1
         elif dt_in < cur_cmbegin and n >= 1:
             n -= 1
- 
+
         new = cur_mbegin + n * MonthBegin()
         result = self.cbday.rollforward(new)
         return as_timestamp(result)
@@ -1967,15 +1970,15 @@ class FY5253Quarter(_NonCythonPeriod, DateOffset):
     def _from_name(cls, *args):
         return cls(**dict(FY5253._parse_suffix(*args[:-1]),
                           qtr_with_extra_week=int(args[-1])))
-        
+
     def _get_ordinal_from_y_q(self, fy, fq):
         """Take zero indexed fq"""
         return fy * 4 + fq
-    
+
     def get_period_ordinal(self, dt):
         year_end = self._offset.get_year_end(dt)
         year_end_year = year_end.year
-        
+
         if dt <= year_end:
             if year_end.month < self._offset.startingMonth:
                 year_end_year -= 1
@@ -1983,31 +1986,34 @@ class FY5253Quarter(_NonCythonPeriod, DateOffset):
         else:
             fy = year_end_year + 1
             year_end = year_end + self._offset
-            
+
         fq = 4
         while dt <= year_end:
             year_end = year_end - self
             fq -= 1
-        
+
         return self._get_ordinal_from_y_q(fy, fq)
-    
+
     @property
     def periodstr(self):
         return self.rule_code
-    
+
     def period_format(self, ordinal, fmt=None):
         fy = ordinal // 4
         fq = (ordinal % 4) + 1
-        
+
         return "%dQ%d" % (fy, fq)
-    
+
     def parse_time_string(self, arg):
         qtr_parsed = _try_parse_qtr_time_string(arg)
         if qtr_parsed is None:
             return None
         else:
             fy, fq = qtr_parsed
-            return self.get_end_dt(self._get_ordinal_from_y_q(fy, fq - 1))
+            return self.get_end_dt(self._get_ordinal_from_y_q(fy, fq - 1)), "quarter"
+
+    def get_period_group(self):
+        return 2000
 
     def get_start_dt(self, ordinal):
         fy = ordinal // 4
@@ -2018,31 +2024,31 @@ class FY5253Quarter(_NonCythonPeriod, DateOffset):
         while countdown:
             countdown -= 1
             year_end = year_end-self
-            
+
         return year_end + relativedelta(days=1)
-         
+
     def get_end_dt(self, ordinal):
         fy = ordinal // 4
         fq = (ordinal % 4) + 1
-                
+
         year_end = self._offset.get_year_end(datetime(fy, 1, 1))
         countdown = 4-fq
         while countdown:
             countdown -= 1
             year_end = year_end-self
-        
+
         return year_end
-    
+
     def is_superperiod(self, target):
         if not isinstance(target, DateOffset):
             from pandas.tseries.frequencies import get_offset
             target = get_offset(target)
-            
+
         if type(target) == Week:
             return target.weekday == self._offset.weekday
         elif type(target) == Day:
             return True
-        
+
     def is_subperiod(self, target):
         #TODO Return True for FY5253 after FY5253 handles periods methods
         return False
